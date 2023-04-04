@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
+using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -41,10 +42,11 @@ namespace AdminkafkaCli
         public static extern void FreeConsole();//关闭控制台
         #endregion
 
-        public int CountOfList = 1000;
+        public int ShowOffsetLimit = 1000;
 
         private async void Form1_Load(object sender, EventArgs e)
         {
+            ShowOffsetLimit = ConfigVals.ShowOffsetLimit;
             await CreateNodeAsync();
         }
 
@@ -184,14 +186,9 @@ namespace AdminkafkaCli
                         dic.Add("InSyncReplicas", Getstring(item.InSyncReplicas));
                         dic.Add("Error", data.Error.ToString());
                         listShow.AddRange(dic.ToList());
-                        listShow.Add(new KeyValuePair<string, string>("---","---"));
+                        listShow.Add(new KeyValuePair<string, string>("---", "---"));
                     }
-                    //Dictionary<string, string> dic = new Dictionary<string, string>();
-                    //dic.Add("PartitionId", "Partition" + data.PartitionId.ToString());
-                    //dic.Add("Leader", data.Leader.ToString());
-                    //dic.Add("Replicas", Getstring(data.Replicas));
-                    //dic.Add("InSyncReplicas", Getstring(data.InSyncReplicas));
-                    //dic.Add("Error", data.Error.ToString());
+
                     dataGridView1.DataSource = listShow;
                 }
                 else if (seletObj is PartitionMetadata)
@@ -222,9 +219,9 @@ namespace AdminkafkaCli
                         WatermarkOffsets watermarkOffsets = consumer.QueryWatermarkOffsets(new TopicPartition(topic, topicMetadata.PartitionId), new TimeSpan(0, 0, 1));
                         if (watermarkOffsets.High > 0)
                         {
-                            if (watermarkOffsets.High > CountOfList)
+                            if (watermarkOffsets.High > ShowOffsetLimit)
                             {
-                                consumer.Assign(new TopicPartitionOffset(topic, topicMetadata.PartitionId, watermarkOffsets.High - CountOfList));
+                                consumer.Assign(new TopicPartitionOffset(topic, topicMetadata.PartitionId, watermarkOffsets.High - ShowOffsetLimit));
                             }
                             else
                             {
@@ -249,7 +246,7 @@ namespace AdminkafkaCli
                                             dr[tss] = TimeZoneInfo.ConvertTimeFromUtc(consumeResult.Message.Timestamp.UtcDateTime, localTime).ToString("yyyy-MM-dd HH:mm:ss fff");
                                             dataTable.Rows.Add(dr);
                                             count++;
-                                            if (count >= CountOfList || consumeResult.IsPartitionEOF)
+                                            if (count >= ShowOffsetLimit || consumeResult.IsPartitionEOF)
                                             {
                                                 break;
                                             }
@@ -276,17 +273,6 @@ namespace AdminkafkaCli
 
         }
 
-        private async void benCreate_Click(object sender, EventArgs e)
-        {
-            CreateTopicForm f2 = new CreateTopicForm();
-            if (f2.ShowDialog() == DialogResult.OK)
-            {
-                await KafkaOpera.CreateTopicAsync(f2.Topic, f2.Parti);
-                Console.WriteLine("已创建topic");
-                CreateNodeAsync();
-                MessageBox.Show("已创建Topic");
-            }
-        }
 
         private async void btnDel_Click(object sender, EventArgs e)
         {
@@ -300,6 +286,32 @@ namespace AdminkafkaCli
                     Console.WriteLine("删除topic");
                 }
             }
+        }
+
+        private async void createTopicToolStripMenuItem_ClickAsync(object sender, EventArgs e)
+        {
+            CreateTopicForm f2 = new CreateTopicForm();
+            if (f2.ShowDialog() == DialogResult.OK)
+            {
+                await CreateTopicAsync(f2.Topic, f2.Parti);
+            }
+        }
+
+        public async Task CreateTopicAsync(string topic, int parti)
+        {
+            await KafkaOpera.CreateTopicAsync(topic, parti);
+            Console.WriteLine("已创建topic");
+            CreateNodeAsync();
+            MessageBox.Show("已创建Topic");
+
+        }
+
+        private async void configToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            await Process.Start("notepad.exe ", ConfigVals.CONFIGFILE).WaitForExitAsync();
+            ConfigVals.LoadFile();
+            Form1_Load(null, null);
+            //File.Open(ConfigVals.CONFIGFILE,FileMode.Open);
         }
     }
 }
