@@ -175,6 +175,7 @@ namespace AdminkafkaCli
                 var seletObj = (((TreeView)sender).SelectedNode.Tag);
                 if (seletObj is TopicMetadata)
                 {
+                    dataGridView1.DataSource = null;
                     TopicMetadata data = (TopicMetadata)seletObj;
                     List<KeyValuePair<string, string>> listShow = new List<KeyValuePair<string, string>>();
                     foreach (var item in data.Partitions)
@@ -193,6 +194,7 @@ namespace AdminkafkaCli
                 }
                 else if (seletObj is PartitionMetadata)
                 {
+                    dataGridView1.DataSource = null;
                     PartitionMetadata topicMetadata = (PartitionMetadata)seletObj;
                     string topic = (((TreeView)sender).SelectedNode).Parent.Parent.Text;
                     DataTable dataTable = new DataTable();
